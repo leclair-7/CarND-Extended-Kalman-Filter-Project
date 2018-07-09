@@ -2,7 +2,7 @@
 #include "tools.h"
 #include "Eigen/Dense"
 #include <iostream>
-
+#include <cmath>
 using namespace std;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -67,6 +67,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       /**
       Convert radar from polar to cartesian coordinates and initialize state.
       */
+      
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
       /**
@@ -93,10 +94,10 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
      * Use noise_ax = 9 and noise_ay = 9 for your Q matrix.
    */
   ekf_.F_ = MatrixXd(4, 4);
-  ekf_.F_ << 1, 0, 1, 0,
-        0, 1, 0, 1,
-        0, 0, 1, 0,
-        0, 0, 0, 1;
+  ekf_.F_ <<  1, 0, 1, 0,
+              0, 1, 0, 1,
+              0, 0, 1, 0,
+              0, 0, 0, 1;
             //compute the time elapsed between the current and previous measurements
   float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0; //dt - expressed in seconds
   previous_timestamp_ = measurement_pack.timestamp_;
@@ -119,7 +120,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
          0, dt_4/4*noise_ay, 0, dt_3/2*noise_ay,
          dt_3/2*noise_ax, 0, dt_2*noise_ax, 0,
          0, dt_3/2*noise_ay, 0, dt_2*noise_ay;
-
+  // F and Q set up, this is the predict step?!?!?!
 
 
   ekf_.Predict();
@@ -136,6 +137,23 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
     // Radar updates
+    MatrixXd h_x_prime = MatrixXd(3,4);
+    
+    float px = ekf_.x_(0);
+    float py = ekf_.x_(1);
+    float vx = ekf_.x_(2);
+    float vy = ekf_.x_(3);
+
+    float rho     = sqrt(px*px + py * py);
+
+    // I forgot what the weird ass greek letter is...
+    float thing   = atan2(py, px);
+    float rho_dot =  (px * vx + py * vy ) / rho ;
+
+    h_x_prime << rho << thing << rho_dot;
+
+    
+
   } else {
     // Laser updates
   }
