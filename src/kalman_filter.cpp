@@ -18,6 +18,9 @@ void KalmanFilter::Init(VectorXd &x_in, MatrixXd &P_in, MatrixXd &F_in,
   H_ = H_in;
   R_ = R_in;
   Q_ = Q_in;
+
+  I = MatrixXd::Identity(2, 2);
+
 }
 
 void KalmanFilter::Predict() {
@@ -25,13 +28,29 @@ void KalmanFilter::Predict() {
   TODO:
     * predict the state
   */
+  
+  // do we need nu (noise?)
+  F_ = F_ * x_; // don't have the noise vector, u
+
+  //new prediction (incomplete on jupyter notes)
+  P_ = F_ * P_ * (F.transpose()) + Q_;
 }
 
 void KalmanFilter::Update(const VectorXd &z) {
-  /**
-  TODO:
+    /**
+    TODO:
     * update the state by using Kalman Filter equations
-  */
+    */
+    VectorXd y_ = (z - (H_ * x_));
+    
+    MatrixXd S_ = ((H_ * P_ * (H_.transpose())) + R_);
+
+    MatrixXd K_ = (P_ * (H_.transpose())  * (S_.inverse())) ;
+    
+    // LHS x is x_prime
+    x_ = x_ + K_ * y_;
+    P_ = (I - K_ * H_ ) * P_;
+    
 }
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
