@@ -2,7 +2,7 @@
 #include "tools.h"
 #include "Eigen/Dense"
 #include <iostream>
-#include <cmath>
+
 using namespace std;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -60,21 +60,42 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     */
     // first measurement
     cout << "EKF: " << endl;
-    ekf_.x_ = VectorXd(4);
-    ekf_.x_ << 1, 1, 1, 1;
-
+    ekf_.x_ = VectorXd(4);    
+    
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
       /**
       Convert radar from polar to cartesian coordinates and initialize state.
       */
+      double rho = measurement_pack.raw_measurements_(0);
+      double phi = measurement_pack.raw_measurements_(1);
+
+      double apx = rho * cos(phi);
+      double apy = rho * sin(phi);
       
+      // We don't have enough info to infer a good velocity measurement hence the 0 vx 0 vy
+      ekf_.x_ << apx , apy , 0 , 0;
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
       /**
       Initialize state.
-      */
-      //the initial transition matrix F_
+      */ 
       
+      ekf_.x_ << measurement_pack.raw_measurements_(0) , measurement_pack.raw_measurements_(1) , 0 , 0;
+      
+      ekf_.F_ = MatrixXd(4, 4);
+
+      ekf_.F_ <<  1, 0, 1, 0,
+                  0, 1, 0, 1,
+                  0, 0, 1, 0,
+                  0, 0, 0, 1;
+
+      //compute the time elapsed between the current and previous measurements
+      float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0; //dt - expressed in seconds
+      previous_timestamp_ = measurement_pack.timestamp_;
+
+      //Modify the F matrix so that the time is integrated
+      ekf_.F_(0, 2) = dt;
+      ekf_.F_(1, 3) = dt;
     }
 
     // done initializing, no need to predict or update
@@ -93,6 +114,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
      * Update the process noise covariance matrix.
      * Use noise_ax = 9 and noise_ay = 9 for your Q matrix.
    */
+
   ekf_.F_ = MatrixXd(4, 4);
   ekf_.F_ <<  1, 0, 1, 0,
               0, 1, 0, 1,
@@ -102,13 +124,13 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0; //dt - expressed in seconds
   previous_timestamp_ = measurement_pack.timestamp_;
 
-  float dt_2 = dt * dt;
-  float dt_3 = dt_2 * dt;
-  float dt_4 = dt_3 * dt;
-
   //Modify the F matrix so that the time is integrated
   ekf_.F_(0, 2) = dt;
   ekf_.F_(1, 3) = dt;
+  
+  float dt_2 = dt * dt;
+  float dt_3 = dt_2 * dt;
+  float dt_4 = dt_3 * dt;
 
   //set the process covariance matrix Q
   float noise_ax = 9;
@@ -124,7 +146,6 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 
 
   ekf_.Predict();
-
   /*****************************************************************************
    *  Update
    ****************************************************************************/
@@ -132,30 +153,16 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   /**
    TODO:
      * Use the sensor type to perform the update step.
-     * Update the state and covariance matrices.
+     * Update the state and covariance matrices., x and Q
    */
 
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
     // Radar updates
-    MatrixXd h_x_prime = MatrixXd(3,4);
-    
-    float px = ekf_.x_(0);
-    float py = ekf_.x_(1);
-    float vx = ekf_.x_(2);
-    float vy = ekf_.x_(3);
-
-    float rho     = sqrt(px*px + py * py);
-
-    // I forgot what the weird ass greek letter is...
-    float thing   = atan2(py, px);
-    float rho_dot =  (px * vx + py * vy ) / rho ;
-
-    h_x_prime << rho << thing << rho_dot;
-
-    
+    ekf_.UpdateEKF(measurement_pack.raw_measurements_);
 
   } else {
     // Laser updates
+    ekf_.Update(measurement_pack.raw_measurements_);
   }
 
   // print the output

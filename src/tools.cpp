@@ -13,41 +13,37 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
                               const vector<VectorXd> &ground_truth) {
   	// made it different than 4 elements like in the class material; need it to adapt to whatever size it needs to be
   	// also it seems as though different sensor packages with require different error calculations
-  	thesize = estimations.size();
+  	
+  	int thesize = estimations.size();
 
-  	VectorXd rmse(thesize);
-  	for (int i=0 ; i < thesize; i++)
-  	{
-  		rmse << 0;
-  	}
-	//rmse << 0,0,0,0;
-  
+  	VectorXd rmse(4);
+  	
 	if (estimations.size() != ground_truth.size() || estimations.size() == 0 )
 	{
 		cout<< "Invalid estimations of ground_truth size"<<endl;
 		return rmse;
 	}
 		
-	VectorXd res(4);
+	
 	VectorXd temp(4);
-	res<<0.0,0.0,0.0,0.0;
+
+	rmse<<0.0,0.0,0.0,0.0;
 
 	for(int i=0; i < estimations.size(); ++i){
 		temp = (estimations[i].array() - ground_truth[i].array() );
-		res = res.array() + temp.array() * temp.array();
+		rmse = rmse.array() + temp.array() * temp.array();
 	}
 	
-	res = (1.0/estimations.size()) * res;
+	rmse = (1.0/estimations.size()) * rmse;
+	rmse = rmse.array().sqrt();
 
-	res = res.array().sqrt();
-
-	return res;
+	return rmse;
 }
 
 MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
-	  /**
-	  Calculates a Jacobian here.
-	  */
+    /**
+      Calculates a Jacobian here.
+    */
 
 	MatrixXd Hj(3,4);
 
