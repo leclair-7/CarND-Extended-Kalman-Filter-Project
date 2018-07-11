@@ -14,10 +14,8 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
   	// made it different than 4 elements like in the class material; need it to adapt to whatever size it needs to be
   	// also it seems as though different sensor packages with require different error calculations
   	
-  	int thesize = estimations.size();
-
   	VectorXd rmse(4);
-  	
+
 	if (estimations.size() != ground_truth.size() || estimations.size() == 0 )
 	{
 		cout<< "Invalid estimations of ground_truth size"<<endl;
@@ -29,7 +27,7 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
 
 	rmse<<0.0,0.0,0.0,0.0;
 
-	for(int i=0; i < estimations.size(); ++i){
+	for(unsigned int i=0; i < estimations.size(); ++i){
 		temp = (estimations[i].array() - ground_truth[i].array() );
 		rmse = rmse.array() + temp.array() * temp.array();
 	}
@@ -57,8 +55,11 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
 	float vy = x_state(3);
 	
 	if (px < .00001 || py < .00001){
-	    cout<<"Error, Divide by zero (almost) " <<endl;
-	    return Hj;}
+	    //cout<<"Error, Divide by zero (almost) " <<endl;
+	    //return Hj;
+	    px = .001;
+	    py = .001;
+	}
     Hj <<
         px/pow(px*px+py*py,.5),py/pow(px*px+py*py,.5),0,0,
         -1*py/(px*px+py*py),px/(px*px+py*py),0,0,

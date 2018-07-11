@@ -63,8 +63,12 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   TODO:
     * update the state by using Extended Kalman Filter equations
   */
+    /* 
+          MEASUREMENT SPACE TO STATE SPACE
+    maps predicted space to measurement space 
 
-    
+    */
+
     MatrixXd h_x_prime = MatrixXd(3,1);
     
     float px = x_(0);
@@ -72,27 +76,39 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
     float vx = x_(2);
     float vy = x_(3);
     
-    double rho     = sqrt(px*px + py * py);
+    double rho     = sqrt(px * px + py * py);
     // I forgot what the weird ass greek letter is...
     double thing   = atan2(py, px);
     double rho_dot =  ( px * vx + py * vy ) / rho ;
 
     h_x_prime << rho, thing, rho_dot;
-    /**/
+    /* This is the end of what we know to do for this part */
     Tools tool = Tools();
-
-    MatrixXd Hj_ = tool.CalculateJacobian( x_ );
     
     VectorXd y_ = (z - (h_x_prime));
+/////////////////////////////////////////////////////
+    MatrixXd Hj_ = tool.CalculateJacobian( x_ );
 
+    /*cout<< "one" <<endl;
+    cout<< "y_"<< Hj_ <<endl;
+    cout<< "K_"<< P_ << endl<<endl;
+    cout<< "x_" << R_ << endl;
+*/
     MatrixXd S_ = (Hj_ * P_ * (Hj_.transpose())) + R_;
+    
+    //cout<< "two"<<endl << S_ << endl;
 
     MatrixXd K_ = (P_ * (Hj_.transpose())  * (S_.inverse())) ;
-    
-    // the new estimate
-    x_ = x_ + K_ * y_;
-    
-    MatrixXd I = MatrixXd::Identity(2, 2);
 
+    // the new estimate
+    x_ = x_ + (K_ * y_);
+    MatrixXd I = MatrixXd::Identity(4,4);
+    /*
+    cout<< "I"<<  I <<endl;
+    cout<< "K\t"<<  K_ <<endl;
+    cout<< "Hj"<<  Hj_ <<endl;
+    cout<< "P\t"<<  P_ <<endl;
+*/
     P_ = (I - K_ * Hj_ ) * P_;
+    cout<< "FIVE\t"<<  K_.size() <<endl;
 }
