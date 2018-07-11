@@ -62,10 +62,21 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     cout << "EKF: " << endl;
     ekf_.x_ = VectorXd(4);    
     
+    ekf_.P_ = MatrixXd(4,4);
+
+    ekf_.P_ << 1, 0, 1, 0,
+          0, 1, 0, 1,
+          0, 0, 1, 0,
+          0, 0, 0, 1;
+
+
+
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
       /**
       Convert radar from polar to cartesian coordinates and initialize state.
       */
+      
+      /*
       double rho = measurement_pack.raw_measurements_(0);
       double phi = measurement_pack.raw_measurements_(1);
 
@@ -74,6 +85,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       
       // We don't have enough info to infer a good velocity measurement hence the 0 vx 0 vy
       ekf_.x_ << apx , apy , 0 , 0;
+      */
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
       /**
@@ -146,6 +158,8 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 
 
   ekf_.Predict();
+
+
   /*****************************************************************************
    *  Update
    ****************************************************************************/
@@ -158,11 +172,25 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
     // Radar updates
+    /*
     ekf_.UpdateEKF(measurement_pack.raw_measurements_);
-
+    */
   } else {
     // Laser updates
+    //cout<< "Two"<<endl;
+
+    ekf_.H_ = MatrixXd(2,4);
+
+    ekf_.H_ << 1, 0, 0, 0,
+               0, 1, 0, 0;
+
+    ekf_.R_ = MatrixXd(2,2);
+    ekf_.R_ = R_laser_;
+
     ekf_.Update(measurement_pack.raw_measurements_);
+    //cout<< "Three"<<endl;
+
+
   }
 
   // print the output
