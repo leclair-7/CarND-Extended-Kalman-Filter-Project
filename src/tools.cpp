@@ -5,7 +5,10 @@ using Eigen::VectorXd;
 using Eigen::MatrixXd;
 using std::vector;
 
-Tools::Tools() {}
+Tools::Tools() {
+	px_past = 0.0001;
+	py_past = 0.0001;
+}
 
 Tools::~Tools() {}
 
@@ -15,21 +18,19 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
   	// also it seems as though different sensor packages with require different error calculations
   	
   	VectorXd rmse(4);
+	rmse<<0.0,0.0,0.0,0.0;
 
 	if (estimations.size() != ground_truth.size() || estimations.size() == 0 )
 	{
 		cout<< "Invalid estimations of ground_truth size"<<endl;
 		return rmse;
 	}
-		
-	
+			
 	VectorXd temp(4);
 
-	rmse<<0.0,0.0,0.0,0.0;
-
 	for(unsigned int i=0; i < estimations.size(); ++i){
-		temp = (estimations[i].array() - ground_truth[i].array() );
-		rmse = rmse.array() + temp.array() * temp.array();
+		temp = (estimations[i] - ground_truth[i] );
+		rmse = rmse.array() + (temp.array() * temp.array() );
 	}
 	
 	rmse = (1.0/estimations.size()) * rmse;
@@ -54,14 +55,16 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
 	float vx = x_state(2);
 	float vy = x_state(3);
 	
-	if (px < .00001 || py < .00001){
-	    //cout<<"Error, Divide by zero (almost) " <<endl;
-	    //return Hj;
-	    px = .001;
-	    py = .001;
+	if ( fabs(px*px + py * py) < .00001 ){	    
+	    px = px_past;
+	    py = py_past;
+	} else {
+		px_past = px;
+		py_past = py;		
 	}
+
     Hj <<
-        px/pow(px*px+py*py,.5),py/pow(px*px+py*py,.5),0,0,
+        px/sqrt(px*px+py*py),py/sqrt(px*px+py*py),0,0,
         -1*py/(px*px+py*py),px/(px*px+py*py),0,0,
         py*(vx*py - vy*px)/(pow((px*px+py*py),1.5)),
         px * (vy*px-vx*py )  / (pow((px*px+py*py),1.5)),

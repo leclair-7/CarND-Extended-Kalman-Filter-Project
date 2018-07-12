@@ -19,6 +19,8 @@ public:
   */
   virtual ~Tools();
 
+  float px_past;
+  float py_past;
   /**
   * A helper method to calculate RMSE.
   */

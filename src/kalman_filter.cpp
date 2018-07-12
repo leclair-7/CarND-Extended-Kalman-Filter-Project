@@ -2,7 +2,7 @@
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
-
+#define PI 3.141592653
 using namespace std;
 /*
 Please note that the Eigen library does not initialize 
@@ -83,32 +83,34 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
 
     h_x_prime << rho, thing, rho_dot;
     /* This is the end of what we know to do for this part */
-    Tools tool = Tools();
     
     VectorXd y_ = (z - (h_x_prime));
+
+    // Add or subtract until y_(0) is in the desired range
+    /*
+    if (y_(1) < -PI){
+      while(y_(1) < -PI){
+        y_(1) = y_(1) + 2 * PI;
+      }
+    }
+    else if (y_(1) > PI){
+      while(y_(1) > PI){
+        y_(1) = y_(1) - 2 * PI;
+      }
+    }
+    */
+    y_(1) = std::fmod(y_(1), 2*PI);
 /////////////////////////////////////////////////////
-    MatrixXd Hj_ = tool.CalculateJacobian( x_ );
-
-    /*cout<< "one" <<endl;
-    cout<< "y_"<< Hj_ <<endl;
-    cout<< "K_"<< P_ << endl<<endl;
-    cout<< "x_" << R_ << endl;
-*/
-    MatrixXd S_ = (Hj_ * P_ * (Hj_.transpose())) + R_;
     
-    //cout<< "two"<<endl << S_ << endl;
-
-    MatrixXd K_ = (P_ * (Hj_.transpose())  * (S_.inverse())) ;
+    
+    MatrixXd S_ = (H_ * P_ * (H_.transpose())) + R_;
+    
+    MatrixXd K_ = (P_ * (H_.transpose())  * (S_.inverse())) ;
 
     // the new estimate
     x_ = x_ + (K_ * y_);
     MatrixXd I = MatrixXd::Identity(4,4);
-    /*
-    cout<< "I"<<  I <<endl;
-    cout<< "K\t"<<  K_ <<endl;
-    cout<< "Hj"<<  Hj_ <<endl;
-    cout<< "P\t"<<  P_ <<endl;
-*/
-    P_ = (I - K_ * Hj_ ) * P_;
-    cout<< "FIVE\t"<<  K_.size() <<endl;
+    
+    P_ = (I - K_ * H_ ) * P_;
+    
 }
